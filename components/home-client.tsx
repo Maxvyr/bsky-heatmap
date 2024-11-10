@@ -3,9 +3,9 @@
 import { useState, useMemo, ChangeEvent, useCallback } from "react";
 import * as bsky from "@atproto/api";
 import { getData } from "./atproto";
-import CalendarHeatmap from "react-calendar-heatmap";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { CalendarHeatmap } from "./ui/calendar-heatmap";
 
 type PostsData = Awaited<ReturnType<typeof getData>>;
 
@@ -13,9 +13,19 @@ export default function HomeClient() {
   const [data, setData] = useState<PostsData | undefined>();
   const [heatmapSubject, setHeatmapSubject] = useState<string>("");
 
-  const posts = data?.data ?? [];
-  const max = data?.max ?? 0;
-  const createdAt = new Date(data?.createdAt);
+  const posts = useMemo(() => data?.data ?? [], [data]);
+
+  type PostData = {
+    date: string;
+    count: number;
+  };
+
+  const weightedDates = useMemo(() => {
+    return (posts as PostData[]).map((post) => ({
+      date: new Date(post.date),
+      weight: post.count,
+    }));
+  }, [posts]);
 
   const agent = useMemo(
     () =>
@@ -28,13 +38,15 @@ export default function HomeClient() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const loadPosts = useCallback(async () => {
     try {
-      let actor: string | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let actor: any;
       try {
         actor = (
           await agent.getProfile({
             actor: heatmapSubject.trim().replace("@", ""),
           })
         ).data.did;
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         console.error(e);
@@ -43,6 +55,7 @@ export default function HomeClient() {
       }
       setIsLoading(true);
       const data = await getData(agent!, actor);
+      // console.log("actor data", data);
       setData(data);
     } finally {
       setIsLoading(false);
@@ -82,32 +95,12 @@ export default function HomeClient() {
         {posts.length === 0 || isLoading ? null : (
           <>
             <CalendarHeatmap
-              startDate={createdAt}
-              endDate={new Date()}
-              values={posts}
-              classForValue={(value) => {
-                if (!value) {
-                  return "color-empty";
-                }
-                // return `color-github-${value.count > 0 ? Math.ceil((value.count / max) * 4) : 0}`;
-                return `color-custom-${
-                  value.count > 0 ? Math.ceil((value.count / max) * 17) : 0
-                }`;
-              }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              tooltipDataAttrs={(value: any) => {
-                return {
-                  "data-tooltip-id": "my-tooltip",
-                  "data-tooltip-content":
-                    value.date !== null
-                      ? `${value.date} has ${value.count} posts`
-                      : "no posts",
-                  "data-tooltip-place": "top",
-                };
-              }}
-              showWeekdayLabels={true}
-              gutterSize={1}
-              showOutOfRangeDays={true}
+              variantClassnames={[
+                "text-white hover:text-white bg-green-400 hover:bg-green-400",
+                "text-white hover:text-white bg-green-500 hover:bg-green-500",
+                "text-white hover:text-white bg-green-700 hover:bg-green-700",
+              ]}
+              weightedDates={weightedDates}
             />
           </>
         )}
