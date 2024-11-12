@@ -55,7 +55,6 @@ export default function HomeClient() {
       }
       setIsLoading(true);
       const data = await getData(agent!, actor);
-      // console.log("actor data", data);
       setData(data);
     } finally {
       setIsLoading(false);
