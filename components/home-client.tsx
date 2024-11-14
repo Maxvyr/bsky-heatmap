@@ -1,69 +1,42 @@
 "use client";
 
-import { useState, useMemo, ChangeEvent, useCallback } from "react";
-import * as bsky from "@atproto/api";
-import { getData } from "./atproto";
+import { useCallback, useState, useTransition } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { fetchBlueSkyPosts } from "@/lib/feature/user/actions";
 import { CalendarHeatmap } from "./ui/calendar-heatmap";
 
-type PostsData = Awaited<ReturnType<typeof getData>>;
+export default function HomeClient(props: { csrfToken: string }) {
+  const [weightedDates, setWeightedDates] = useState<
+    Array<{ date: Date; weight: number }>
+  >([]);
+  const [isPending, startTransition] = useTransition();
 
-export default function HomeClient() {
-  const [data, setData] = useState<PostsData | undefined>();
-  const [heatmapSubject, setHeatmapSubject] = useState<string>("");
-
-  const posts = useMemo(() => data?.data ?? [], [data]);
-
-  type PostData = {
-    date: string;
-    count: number;
-  };
-
-  const weightedDates = useMemo(() => {
-    return (posts as PostData[]).map((post) => ({
-      date: new Date(post.date),
-      weight: post.count,
-    }));
-  }, [posts]);
-
-  const agent = useMemo(
-    () =>
-      new bsky.BskyAgent({
-        service: "https://api.bsky.app",
-      }),
-    []
-  );
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const loadPosts = useCallback(async () => {
-    try {
-      let actor: any;
-      try {
-        actor = (
-          await agent.getProfile({
-            actor: heatmapSubject.trim().replace("@", ""),
-          })
-        ).data.did;
-      } catch (e) {
-        console.error(e);
-        alert("Invalid username!");
+  const handleSubmit = useCallback(async (formData: FormData) => {
+    startTransition(async () => {
+      const result = await fetchBlueSkyPosts(formData);
+      if (!result) {
+        alert("Something went wrong");
         return;
       }
-      setIsLoading(true);
-      const data = await getData(agent!, actor);
-      setData(data);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [agent, heatmapSubject]);
 
-  const handleHeatmapSubjectChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setHeatmapSubject(e.target.value);
-    },
-    []
-  );
+      if (result.success) {
+        if (!result.data?.data || result.data?.data?.length === 0) {
+          alert("No posts found");
+          return;
+        }
+
+        setWeightedDates(
+          result.data.data.map((post: any) => ({
+            date: new Date(post.date),
+            weight: post.count,
+          }))
+        );
+      } else {
+        alert(result.error);
+      }
+    });
+  }, []);
 
   return (
     <div>
@@ -71,34 +44,33 @@ export default function HomeClient() {
         Bluesky Posts Heatmap Generator 🦋&nbsp;
       </h1>
       <br />
-      <div className="flex gap-2">
+      <form action={handleSubmit} className="flex gap-2">
+        <input type="hidden" name="csrfToken" value={props.csrfToken} />
         <Input
+          name="username"
           type="text"
           placeholder="Bluesky username"
-          onChange={handleHeatmapSubjectChange}
-          value={heatmapSubject}
+          required
         />
-        <Button type="button" onClick={loadPosts} disabled={isLoading}>
+        <Button type="submit" disabled={isPending}>
           Get heatmap
         </Button>
-      </div>
+      </form>
       <div className="flex flex-col gap-2 items-center mt-4">
-        {isLoading ? (
+        {isPending ? (
           <div className="text-sm text-muted-foreground">
             Loading... (This might take a minute or two. No, really.)
           </div>
         ) : null}
-        {posts.length === 0 || isLoading ? null : (
-          <>
-            <CalendarHeatmap
-              variantClassnames={[
-                "text-white hover:text-white bg-green-400 hover:bg-green-400",
-                "text-white hover:text-white bg-green-500 hover:bg-green-500",
-                "text-white hover:text-white bg-green-700 hover:bg-green-700",
-              ]}
-              weightedDates={weightedDates}
-            />
-          </>
+        {weightedDates.length > 0 && !isPending && (
+          <CalendarHeatmap
+            variantClassnames={[
+              "text-white hover:text-white bg-green-400 hover:bg-green-400",
+              "text-white hover:text-white bg-green-500 hover:bg-green-500",
+              "text-white hover:text-white bg-green-700 hover:bg-green-700",
+            ]}
+            weightedDates={weightedDates}
+          />
         )}
       </div>
     </div>
