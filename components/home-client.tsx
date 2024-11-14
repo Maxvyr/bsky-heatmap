@@ -38,7 +38,6 @@ export default function HomeClient() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const loadPosts = useCallback(async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let actor: any;
       try {
         actor = (
@@ -46,9 +45,7 @@ export default function HomeClient() {
             actor: heatmapSubject.trim().replace("@", ""),
           })
         ).data.did;
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
+      } catch (e) {
         console.error(e);
         alert("Invalid username!");
         return;

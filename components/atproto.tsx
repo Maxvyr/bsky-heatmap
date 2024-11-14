@@ -20,7 +20,6 @@ export const getData = async (agent: bsky.BskyAgent, actor: string) => {
     if (typeof res.feed[0] !== "undefined") {
       posts.push(
         ...res.feed.map((e) => ({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           text: (e.post.record as any).text,
           uri: e.post.uri
             .replace("app.bsky.feed.", "")
@@ -31,14 +30,12 @@ export const getData = async (agent: bsky.BskyAgent, actor: string) => {
           isOwn: e.post.author.did === actor,
           repostCount: e.post.repostCount,
           isRepost: e.post.repostCount === 0 ? false : true,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           createdAt: (e.post.record as any).createdAt,
         }))
       );
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedPosts = posts.reduce((acc: any, obj: any) => {
     const key = obj.createdAt.slice(0, 10);
     if (!acc[key]) {
@@ -48,10 +45,8 @@ export const getData = async (agent: bsky.BskyAgent, actor: string) => {
     return acc;
   }, {});
 
-  // i don't need the outer object, i just need an array with the values
   const data = Object.values(groupedPosts);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const max = Math.max(...data.map((o: any) => o.count));
 
   const createdAt = await getUserCreatedAt(actor);
