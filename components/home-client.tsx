@@ -5,12 +5,15 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { fetchBlueSkyPosts } from "@/lib/feature/user/actions";
 import { CalendarHeatmap } from "./ui/calendar-heatmap";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function HomeClient(props: { csrfToken: string }) {
   const [weightedDates, setWeightedDates] = useState<
     Array<{ date: Date; weight: number }>
   >([]);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const handleSubmit = useCallback(async (formData: FormData) => {
     startTransition(async () => {
@@ -38,12 +41,23 @@ export default function HomeClient(props: { csrfToken: string }) {
     });
   }, []);
 
+  const handleDateClick = useCallback(
+    (date: Date) => {
+      const dateEntry = weightedDates.find(
+        (entry) => entry.date.toDateString() === date.toDateString()
+      );
+
+      console.log(dateEntry);
+
+      if (dateEntry) {
+        router.push(`/post/${dateEntry.date.toISOString().split("T")[0]}`);
+      }
+    },
+    [weightedDates, router]
+  );
+
   return (
     <div>
-      <h1 className="text-2xl font-bold">
-        Bluesky Posts Heatmap Generator 🦋&nbsp;
-      </h1>
-      <br />
       <form action={handleSubmit} className="flex gap-2">
         <input type="hidden" name="csrfToken" value={props.csrfToken} />
         <Input
@@ -58,8 +72,9 @@ export default function HomeClient(props: { csrfToken: string }) {
       </form>
       <div className="flex flex-col gap-2 items-center mt-4">
         {isPending ? (
-          <div className="text-sm text-muted-foreground">
-            Loading... (This might take a minute or two. No, really.)
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <Loader2 className="animate-spin size-4" />
+            Loading...
           </div>
         ) : null}
         {weightedDates.length > 0 && !isPending && (
@@ -69,7 +84,9 @@ export default function HomeClient(props: { csrfToken: string }) {
               "text-white hover:text-white bg-green-500 hover:bg-green-500",
               "text-white hover:text-white bg-green-700 hover:bg-green-700",
             ]}
+            numberOfMonths={3}
             weightedDates={weightedDates}
+            onClick={handleDateClick}
           />
         )}
       </div>

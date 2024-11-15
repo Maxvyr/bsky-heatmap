@@ -51,7 +51,19 @@ export const getData = async (agent: bsky.BskyAgent, actor: string) => {
 
   const createdAt = await getUserCreatedAt(actor);
 
+  // for (const post of paginatedAll) {
+  //   for (const feed of post.feed) {
+  //     console.log("feed", feed);
+  //   }
+  // }
+
+  // console.log("posts", posts);
+  // console.log("data", data);
+  // console.log("max", max);
+  // console.log("createdAt", createdAt);
+
   return {
+    posts,
     data,
     max,
     createdAt,

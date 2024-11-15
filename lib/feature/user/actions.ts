@@ -7,9 +7,6 @@ export async function fetchBlueSkyPosts(formData: FormData) {
   const csrfToken = formData.get("csrfToken")?.toString() || "";
   const username = formData.get("username")?.toString() || "";
 
-  console.log("csrfToken", csrfToken);
-  console.log("ACCESS_TOKEN", process.env.ACCESS_TOKEN);
-
   if (csrfToken !== process.env.ACCESS_TOKEN) {
     return { success: false, error: "Invalid Request!" };
   }

@@ -1,86 +1,88 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 // type utilities
-type UnionKeys<T> = T extends T ? keyof T : never
-type Expand<T> = T extends T ? { [K in keyof T]: T[K] } : never
+type UnionKeys<T> = T extends T ? keyof T : never;
+type Expand<T> = T extends T ? { [K in keyof T]: T[K] } : never;
 type OneOf<T extends {}[]> = {
   [K in keyof T]: Expand<
     T[K] & Partial<Record<Exclude<UnionKeys<T[number]>, keyof T[K]>, never>>
-  >
-}[number]
+  >;
+}[number];
 
 // types
-export type Classname = string
+export type Classname = string;
 export type WeightedDateEntry = {
-  date: Date
-  weight: number
-}
+  date: Date;
+  weight: number;
+};
 
 interface IDatesPerVariant {
-  datesPerVariant: Date[][]
+  datesPerVariant: Date[][];
 }
 interface IWeightedDatesEntry {
-  weightedDates: WeightedDateEntry[]
+  weightedDates: WeightedDateEntry[];
 }
 
-type VariantDatesInput = OneOf<[IDatesPerVariant, IWeightedDatesEntry]>
+type VariantDatesInput = OneOf<[IDatesPerVariant, IWeightedDatesEntry]>;
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
-  variantClassnames: Classname[]
-} & VariantDatesInput
+  variantClassnames: Classname[];
+  onClick?: (date: Date) => void;
+} & VariantDatesInput;
 
 /// utlity functions
 function useModifers(
   variantClassnames: Classname[],
   datesPerVariant: Date[][]
 ): [Record<string, Date[]>, Record<string, string>] {
-  const noOfVariants = variantClassnames.length
+  const noOfVariants = variantClassnames.length;
 
   const variantLabels = [...Array(noOfVariants)].map(
     (_, idx) => `__variant${idx}`
-  )
+  );
 
   const modifiers = variantLabels.reduce((acc, key, index) => {
-    acc[key] = datesPerVariant[index]
-    return acc
-  }, {} as Record<string, Date[]>)
+    acc[key] = datesPerVariant[index];
+    return acc;
+  }, {} as Record<string, Date[]>);
 
   const modifiersClassNames = variantLabels.reduce((acc, key, index) => {
-    acc[key] = variantClassnames[index]
-    return acc
-  }, {} as Record<string, string>)
+    acc[key] = variantClassnames[index];
+    return acc;
+  }, {} as Record<string, string>);
 
-  return [modifiers, modifiersClassNames]
+  return [modifiers, modifiersClassNames];
 }
 
 function categorizeDatesPerVariant(
   weightedDates: WeightedDateEntry[],
   noOfVariants: number
 ) {
-  const sortedEntries = weightedDates.sort((a, b) => a.weight - b.weight)
+  const sortedEntries = weightedDates.sort((a, b) => a.weight - b.weight);
 
-  const categorizedRecord = [...Array(noOfVariants)].map(() => [] as Date[])
+  const categorizedRecord = [...Array(noOfVariants)].map(() => [] as Date[]);
 
-  const minNumber = sortedEntries[0].weight
-  const maxNumber = sortedEntries[sortedEntries.length - 1].weight
-  const range = minNumber == maxNumber ? 1 : (maxNumber - minNumber) / noOfVariants;
+  const minNumber = sortedEntries[0].weight;
+  const maxNumber = sortedEntries[sortedEntries.length - 1].weight;
+  const range =
+    minNumber == maxNumber ? 1 : (maxNumber - minNumber) / noOfVariants;
 
   sortedEntries.forEach((entry) => {
     const category = Math.min(
       Math.floor((entry.weight - minNumber) / range),
       noOfVariants - 1
-    )
-    categorizedRecord[category].push(entry.date)
-  })
+    );
+    categorizedRecord[category].push(entry.date);
+  });
 
-  return categorizedRecord
+  return categorizedRecord;
 }
 
 function CalendarHeatmap({
@@ -90,21 +92,23 @@ function CalendarHeatmap({
   className,
   classNames,
   showOutsideDays = true,
+  onClick,
   ...props
 }: CalendarProps) {
-  const noOfVariants = variantClassnames.length
+  const noOfVariants = variantClassnames.length;
 
-  weightedDates = weightedDates ?? []
+  weightedDates = weightedDates ?? [];
   datesPerVariant =
-    datesPerVariant ?? categorizeDatesPerVariant(weightedDates, noOfVariants)
+    datesPerVariant ?? categorizeDatesPerVariant(weightedDates, noOfVariants);
 
   const [modifiers, modifiersClassNames] = useModifers(
     variantClassnames,
     datesPerVariant
-  )
+  );
 
   return (
     <DayPicker
+      onDayClick={onClick}
       modifiers={modifiers}
       modifiersClassNames={modifiersClassNames}
       showOutsideDays={showOutsideDays}
@@ -149,8 +153,8 @@ function CalendarHeatmap({
       }}
       {...props}
     />
-  )
+  );
 }
-CalendarHeatmap.displayName = "CalendarHeatmap"
+CalendarHeatmap.displayName = "CalendarHeatmap";
 
-export { CalendarHeatmap }
+export { CalendarHeatmap };
